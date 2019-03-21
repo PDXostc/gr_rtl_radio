@@ -13,6 +13,8 @@
 #include <thread>
 #include <numeric>
 
+#include <iostream> // Debugging only
+
 #include "gnuradio/top_block.h"
 #include "osmosdr/source.h"
 #include "gnuradio/filter/rational_resampler_base_ccc.h"
@@ -28,9 +30,33 @@
 #include "gnuradio/blocks/wavfile_source.h"
 #include "gr_wfmrcv.h"
 
-//std::vector<float>
+// Structure to hold smart pointers to flowgraph blocks for the rtl sdr tuner
+struct rtl_ctx {
+    gr::top_block_sptr top_block;
+    osmosdr::source::sptr rtl_source;
+};
 
-void create_fm_device()
+// Sets the FM center frequency for the given tuner
+// Part of the external C API
+// @param tuner Pointer to the tuner context
+// @param freq Frequency in megahertz e.g. 105.9
+void rtl_set_fm(rtl_ctx_t* tuner, double freq)
+{
+    tuner->rtl_source->set_center_freq(freq * 1e6);
+}
+
+// Gets the current center FM frequency that the tuner is set to
+// Part of the external C API
+// @param tuner POinter to the tuner context
+double rtl_get_fm(rtl_ctx_t* tuner)
+{
+    return tuner->rtl_source->get_center_freq();
+}
+
+// Does all of the heavy listing setting up a flowgraph for an rtl_sdr radio source
+// @parame context Reference to the tuner context.  This is a struct and not a class because
+// the rtl_ctx is typedefed to an opaque type in the header to allow compatibility with C
+void create_fm_device(rtl_ctx &context)
 {
     int mltpl = 1e6;
     int volume = 20;
@@ -44,6 +70,10 @@ void create_fm_device()
 
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
+
+    context.top_block = tb;
+    context.rtl_source = rtlsrc;
+
     //rtlsrc->set_time_now(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), osmosdr::ALL_MBOARDS);
     rtlsrc->set_sample_rate(samp_rate);
     rtlsrc->set_center_freq(freq * 1e6);
@@ -179,7 +209,7 @@ void create_fm_device()
     float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
     float audio_rate = quadrature / audio_dec;
 
-   
+
 
     /*gr::blocks::wavfile_source::sptr filesink = gr::blocks::wavfile_source::make(
         "/home/jlruser/yocto/qcom-linux-guest/apps_proc/audio/mm-audio/audio-listen/sva/res/raw/succeed.wav"
@@ -204,14 +234,65 @@ void create_fm_device()
     tb->connect(
         rresamp0, 0,
         audsink, 0);
-
-    tb->start();
-    tb->wait();
 }
 
-void create_tuner()
+// Creates and allocates an instance of an rtl tuner context.
+// Part of the external API
+// @return A pointer to a newly allocated tuner context
+rtl_ctx_t* rtl_create_tuner()
 {
+    rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
+    if (tuner_ctx == NULL)
+    {
+        printf("Error: rtl_create_tuner - out of memory\n");
+        return NULL;
+    }
+    create_fm_device(*tuner_ctx);
 
-    std::thread t1(create_fm_device);
-    t1.detach();
+    return tuner_ctx;
+}
+
+// Shuts down and destroyes a tuner context
+// Part of the external API
+// @param The tuner context
+void rtl_destroy_tuner(rtl_ctx_t* tuner)
+{
+    if (tuner == NULL)
+    {
+        printf("Error: rtl_destroy_tuner - null pointer\n");
+        return;
+    }
+    tuner->top_block->stop();
+    tuner->top_block.reset();
+    delete tuner;
+}
+
+// Starts up a tuner context running.  Blocks forever since the flowgraph never terminates.
+// The assumption is that the caller will start this function on a dedicated thread because it blocks
+// Part of the external API
+// @param tuner The tuner context
+void rtl_start_fm(rtl_ctx_t* tuner)
+{
+    if (tuner == NULL)
+    {
+        printf("Error: rtl_start_fm - no tuner specified\n");
+        return;
+    }
+
+    tuner->top_block->start();
+    tuner->top_block->wait();
+}
+
+// Stops a running flowgraph
+// Part of the external API
+// @param tuner The tuner context
+void rtl_stop_fm(rtl_ctx_t* tuner)
+{
+    if (tuner == NULL)
+    {
+        printf("Error: rtl_stop_fm - no tuner specified\n");
+        return;
+    }
+
+    tuner->top_block->stop();
 }

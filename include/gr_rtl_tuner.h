@@ -9,7 +9,19 @@
 extern "C" {
 #endif
 
-void create_tuner();
+// Opaque context to pass to C
+typedef struct rtl_ctx rtl_ctx_t;
+
+rtl_ctx_t* rtl_create_tuner();
+void rtl_destroy_tuner(rtl_ctx_t* this_tuner);
+
+void rtl_start_fm(rtl_ctx_t* this_tuner);
+void rtl_stop_fm(rtl_ctx_t* this_tuner);
+
+void rtl_get_fm_stations(rtl_ctx_t* this_tuner);
+
+void rtl_set_fm(rtl_ctx_t* this_tuner, double freq);
+double rtl_get_fm(rtl_ctx_t* this_tuner);
 
 #ifdef __cplusplus
 }

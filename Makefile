@@ -13,7 +13,7 @@ LIBS = -lgnuradio-runtime \
        -lboost_system
 
 INC_PATHS = -I./include
-LDFLAGS = -shared
+LDFLAGS = -shared -L/usr/lib/x64_64-linux-gnu/
 CXXFLAGS = -fPIC 
 DEBUGFLAGS = -g
 RELEASEFLAGS = -O3
@@ -25,7 +25,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(OBJECTS): $(SOURCES)
 	$(CXX) $(CXXFLAGS) $(RELEASEFLAGS) $(INC_PATHS) -c $*.cpp -o $*.o
