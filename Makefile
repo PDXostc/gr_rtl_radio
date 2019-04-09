@@ -1,7 +1,8 @@
-.PHONY : clean
+.PHONY : clean all install
 
 TARGET = libgr_rtl_radio.so
- 
+DESTDIR ?= /usr/local
+
 LIBS = -lgnuradio-runtime \
        -lgnuradio-osmosdr \
        -lgnuradio-pmt \
@@ -13,8 +14,9 @@ LIBS = -lgnuradio-runtime \
        -lboost_system
 
 INC_PATHS = -I./include
-LDFLAGS = -shared -L/usr/lib/x64_64-linux-gnu/
-CXXFLAGS = -fPIC 
+DEV_HDR = ./include/gr_rtl_tuner.h
+LDFLAGS = -shared -Wl,-rpath=/usr/lib/x86_64-linux-gnu
+CXXFLAGS = -fPIC -Wall -Wextra
 DEBUGFLAGS = -g
 RELEASEFLAGS = -O3
 
@@ -23,6 +25,12 @@ HEADERS = $(shell echo ./include*.h)
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(TARGET)
+
+install: all
+	install -d ${DESTDIR}/lib; \
+	install -d ${DESTDIR}/include; \
+	install -m 0644 ${TARGET}  ${DESTDIR}/lib; \
+	install -m 0644 ${DEV_HDR}  ${DESTDIR}/include;
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
