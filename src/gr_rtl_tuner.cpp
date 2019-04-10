@@ -56,7 +56,7 @@ double rtl_get_fm(rtl_ctx_t* tuner)
 // Does all of the heavy listing setting up a flowgraph for an rtl_sdr radio source
 // @parame context Reference to the tuner context.  This is a struct and not a class because
 // the rtl_ctx is typedefed to an opaque type in the header to allow compatibility with C
-void create_fm_device(rtl_ctx &context)
+void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
 {
     int mltpl = 1e6;
     int volume = 20;
@@ -239,7 +239,7 @@ void create_fm_device(rtl_ctx &context)
 // Creates and allocates an instance of an rtl tuner context.
 // Part of the external API
 // @return A pointer to a newly allocated tuner context
-rtl_ctx_t* rtl_create_tuner()
+rtl_ctx_t* rtl_create_tuner(audio_sink_t sink_type)
 {
     rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
     if (tuner_ctx == NULL)
@@ -247,7 +247,7 @@ rtl_ctx_t* rtl_create_tuner()
         printf("Error: rtl_create_tuner - out of memory\n");
         return NULL;
     }
-    create_fm_device(*tuner_ctx);
+    create_fm_device(*tuner_ctx, sink_type);
 
     return tuner_ctx;
 }
