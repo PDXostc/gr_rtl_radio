@@ -19,8 +19,13 @@ typedef enum {
 // Opaque context to pass to C
 typedef struct rtl_ctx rtl_ctx_t;
 
-rtl_ctx_t* rtl_create_tuner(audio_sink_t sink);
+rtl_ctx_t* rtl_create_tuner();
 void rtl_destroy_tuner(rtl_ctx_t* this_tuner);
+
+void rtl_add_audio_sink(rtl_ctx_t* this_tuner);
+void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name);
+void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port);
+
 
 void rtl_start_fm(rtl_ctx_t* this_tuner);
 void rtl_stop_fm(rtl_ctx_t* this_tuner);

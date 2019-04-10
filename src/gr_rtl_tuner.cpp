@@ -23,6 +23,7 @@
 #include "gnuradio/filter/fir_filter_ccf.h"
 #include "gnuradio/filter/firdes.h"
 #include "gnuradio/audio/sink.h"
+#include "gnuradio/blocks/udp_sink.h"
 #include "gnuradio/hier_block2.h"
 #include "gnuradio/gr_complex.h"
 #include "gnuradio/analog/quadrature_demod_cf.h"
@@ -38,6 +39,7 @@ const unsigned int MAX_FM_STATIONS = 100;  // maximum number of poossible statio
 struct rtl_ctx {
     gr::top_block_sptr top_block;
     osmosdr::source::sptr rtl_source;
+    gr::filter::rational_resampler_base_fff::sptr rresamp0;
     gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude;
     double station_list[MAX_FM_STATIONS];
     unsigned int station_list_len;
@@ -117,17 +119,17 @@ unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
 // Does all of the heavy listing setting up a flowgraph for an rtl_sdr radio source
 // @parame context Reference to the tuner context.  This is a struct and not a class because
 // the rtl_ctx is typedefed to an opaque type in the header to allow compatibility with C
-void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
+void create_fm_device(rtl_ctx &context)
 {
-    int mltpl = 1e6;
-    int volume = 20;
+    // int mltpl = 1e6;
+    // int volume = 20;
     int transition = 1e6;
     int samp_rate = 2e6;
     int quadrature = 500e3;
     double freq = 101.9;
     int cutoff = 100e3;
     int audio_dec = 10;
-    int max_dev = 75e3;
+    // int max_dev = 75e3;
 
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
@@ -204,7 +206,6 @@ void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
 
     int dec2 = int(quadrature / 1e3 / audio_dec);
     printf("dec2: %d \n", dec2);
-    gr::filter::rational_resampler_base_fff::sptr rresamp0;
 
     d = 2.0;
 
@@ -242,7 +243,7 @@ void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
         gr::filter::firdes::WIN_KAISER,
         float(beta));
 
-    rresamp0 = gr::filter::rational_resampler_base_fff::make(
+    context.rresamp0 = gr::filter::rational_resampler_base_fff::make(
         48.0,
         dec2,
         taps);
@@ -254,7 +255,6 @@ void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
                                                                                 cutoff,
                                                                                 transition));
 
-    gr::audio::sink::sptr audsink = gr::audio::sink::make(44100);
 
     gr::analog::wfmrcv::sptr wfm = gr::analog::wfmrcv::make(
       quadrature,
@@ -267,8 +267,8 @@ void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
         gr::io_signature::make(1, 1, sizeof(gr_complex)),
         gr::io_signature::make(1, 1, sizeof(float)));
 
-    float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
-    float audio_rate = quadrature / audio_dec;
+    // float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
+    // float audio_rate = quadrature / audio_dec;
 
     gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
     context.avg_magnitude = mag_probe;
@@ -295,17 +295,53 @@ void create_fm_device(rtl_ctx &context, audio_sink_t sink_type)
 
     tb->connect(
         wfm, 0,
-        rresamp0, 0);
+        context.rresamp0, 0);
 
-    tb->connect(
-        rresamp0, 0,
+    // Sinks are defined in separate methods
+
+}
+
+void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
+    gr::audio::sink::sptr audsink = gr::audio::sink::make(44100);
+
+    this_tuner->top_block->connect(
+        this_tuner->rresamp0, 0,
         audsink, 0);
+}
+
+void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name) {
+    /*gr::blocks::wavfile_source::sptr filesink = gr::blocks::wavfile_source::make(
+        "/home/jlruser/yocto/qcom-linux-guest/apps_proc/audio/mm-audio/audio-listen/sva/res/raw/succeed.wav"
+    );*/
+    std::cout << "WAV file sinks are not supported yet" << std::endl;
+}
+
+void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
+    std::cout << "Attempting to create udp sink to " << host << ":" << port << std::endl;
+
+    if (host == NULL) {
+        std::cout << "No host provided for UDP sink" << std::endl;
+        return;
+    }
+
+    std::string str_host(host);
+
+    gr::blocks::udp_sink::sptr udp =
+        gr::blocks::udp_sink::make(
+            1,
+            str_host,
+            port);
+
+    this_tuner->top_block->connect(
+        this_tuner->rresamp0, 0,
+        udp, 0);
+
 }
 
 // Creates and allocates an instance of an rtl tuner context.
 // Part of the external API
 // @return A pointer to a newly allocated tuner context
-rtl_ctx_t* rtl_create_tuner(audio_sink_t sink_type)
+rtl_ctx_t* rtl_create_tuner()
 {
     rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
     if (tuner_ctx == NULL)
@@ -313,7 +349,7 @@ rtl_ctx_t* rtl_create_tuner(audio_sink_t sink_type)
         printf("Error: rtl_create_tuner - out of memory\n");
         return NULL;
     }
-    create_fm_device(*tuner_ctx, sink_type);
+    create_fm_device(*tuner_ctx);
 
     return tuner_ctx;
 }
