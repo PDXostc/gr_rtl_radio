@@ -23,6 +23,7 @@
 #include "gnuradio/filter/fir_filter_ccf.h"
 #include "gnuradio/filter/firdes.h"
 #include "gnuradio/audio/sink.h"
+#include "gnuradio/block.h"
 #include "gnuradio/blocks/udp_sink.h"
 #include "gnuradio/hier_block2.h"
 #include "gnuradio/gr_complex.h"
@@ -44,6 +45,7 @@ struct rtl_ctx {
     double station_list[MAX_FM_STATIONS];
     unsigned int station_list_len;
     std::mutex station_list_mtx;
+    gr::block_vector_t sinks;
 };
 
 // Sets the FM center frequency for the given tuner
@@ -307,6 +309,8 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
     this_tuner->top_block->connect(
         this_tuner->rresamp0, 0,
         audsink, 0);
+
+    this_tuner->sinks.push_back(audsink);
 }
 
 void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name) {
@@ -336,6 +340,7 @@ void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
         this_tuner->rresamp0, 0,
         udp, 0);
 
+    this_tuner->sinks.push_back(udp);
 }
 
 // Creates and allocates an instance of an rtl tuner context.
@@ -380,6 +385,13 @@ void rtl_start_fm(rtl_ctx_t* tuner)
         printf("Error: rtl_start_fm - no tuner specified\n");
         return;
     }
+
+    if (tuner->sinks.size() == 0)
+    {
+        printf("Error: rtl_start_fm - no audio sinks specified for tuner\n");
+        return;
+    }
+
     tuner->top_block->start();
     tuner->top_block->wait();
 }
