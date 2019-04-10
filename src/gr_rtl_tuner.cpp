@@ -60,15 +60,15 @@ double rtl_get_fm(rtl_ctx_t* tuner)
 // the rtl_ctx is typedefed to an opaque type in the header to allow compatibility with C
 void create_fm_device(rtl_ctx &context)
 {
-    int mltpl = 1e6;
-    int volume = 20;
+    // int mltpl = 1e6;
+    // int volume = 20;
     int transition = 1e6;
     int samp_rate = 2e6;
     int quadrature = 500e3;
     double freq = 101.9;
     int cutoff = 100e3;
     int audio_dec = 10;
-    int max_dev = 75e3;
+    // int max_dev = 75e3;
 
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
@@ -206,8 +206,8 @@ void create_fm_device(rtl_ctx &context)
         gr::io_signature::make(1, 1, sizeof(gr_complex)),
         gr::io_signature::make(1, 1, sizeof(float)));
 
-    float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
-    float audio_rate = quadrature / audio_dec;
+    // float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
+    // float audio_rate = quadrature / audio_dec;
 
     tb->connect(
         rtlsrc, 0,
