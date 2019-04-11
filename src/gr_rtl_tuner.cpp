@@ -300,7 +300,7 @@ void create_fm_device(rtl_ctx &context)
         context.rresamp0, 0);
 
     // Sinks are defined in separate methods
-
+    printf("gr_rtl: things are connected\n");
 }
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
@@ -332,7 +332,7 @@ void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
 
     gr::blocks::udp_sink::sptr udp =
         gr::blocks::udp_sink::make(
-            1,
+            sizeof(float),
             str_host,
             port);
 
@@ -348,6 +348,7 @@ void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
 // @return A pointer to a newly allocated tuner context
 rtl_ctx_t* rtl_create_tuner()
 {
+    printf("gr_rtl: create_tuner\n");
     rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
     if (tuner_ctx == NULL)
     {
