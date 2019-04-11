@@ -260,7 +260,7 @@ void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
 
     gr::blocks::udp_sink::sptr udp =
         gr::blocks::udp_sink::make(
-            1,
+            sizeof(float),
             str_host,
             port);
 
