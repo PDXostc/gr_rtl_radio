@@ -211,6 +211,7 @@ void create_fm_device(rtl_ctx &context)
     // float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
     // float audio_rate = quadrature / audio_dec;
 
+    printf("gr_rtl: connect all the things\n");
     tb->connect(
         rtlsrc, 0,
         rresamp1, 0);
@@ -228,7 +229,7 @@ void create_fm_device(rtl_ctx &context)
         context.rresamp0, 0);
 
     // Sinks are defined in separate methods
-
+    printf("gr_rtl: things are connected\n");
 }
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
@@ -276,6 +277,7 @@ void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
 // @return A pointer to a newly allocated tuner context
 rtl_ctx_t* rtl_create_tuner()
 {
+    printf("gr_rtl: create_tuner\n");
     rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
     if (tuner_ctx == NULL)
     {
