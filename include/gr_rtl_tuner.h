@@ -18,7 +18,7 @@ void rtl_destroy_tuner(rtl_ctx_t* this_tuner);
 void rtl_start_fm(rtl_ctx_t* this_tuner);
 void rtl_stop_fm(rtl_ctx_t* this_tuner);
 
-void rtl_get_fm_stations(rtl_ctx_t* this_tuner);
+unsigned int rtl_get_fm_stations(rtl_ctx_t* this_tuner, double* stations_out);
 
 void rtl_set_fm(rtl_ctx_t* this_tuner, double freq);
 double rtl_get_fm(rtl_ctx_t* this_tuner);
