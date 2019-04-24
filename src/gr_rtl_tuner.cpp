@@ -56,9 +56,10 @@ void rtl_set_fm(rtl_ctx_t* tuner, double freq)
 // Gets the current center FM frequency that the tuner is set to
 // Part of the external C API
 // @param tuner Pointer to the tuner context
+// @returns currently tuned frequency in MHz
 double rtl_get_fm(rtl_ctx_t* tuner)
 {
-    return tuner->rtl_source->get_center_freq();
+    return tuner->rtl_source->get_center_freq() / 1e6;
 }
 
 // Iterates through the FM band, measures signal strength of each station, and populates station list
