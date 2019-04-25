@@ -24,13 +24,12 @@
 #include "gnuradio/filter/firdes.h"
 #include "gnuradio/audio/sink.h"
 #include "gnuradio/block.h"
-#include "gnuradio/blocks/udp_sink.h"
+#include "gnuradio/blocks/wavfile_sink.h"
 #include "gnuradio/hier_block2.h"
 #include "gnuradio/gr_complex.h"
 #include "gnuradio/analog/quadrature_demod_cf.h"
 #include "gnuradio/filter/iir_filter_ffd.h"
 #include "gnuradio/filter/fir_filter_fff.h"
-#include "gnuradio/blocks/wavfile_source.h"
 #include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
 #include "gr_wfmrcv.h"
 
@@ -275,9 +274,6 @@ void create_fm_device(rtl_ctx &context)
     gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
     context.avg_magnitude = mag_probe;
 
-    /*gr::blocks::wavfile_source::sptr filesink = gr::blocks::wavfile_source::make(
-        "/home/jlruser/yocto/qcom-linux-guest/apps_proc/audio/mm-audio/audio-listen/sva/res/raw/succeed.wav"
-    );*/
 
     tb->connect(
         rtlsrc, 0,
@@ -314,33 +310,17 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
 }
 
 void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name) {
-    /*gr::blocks::wavfile_source::sptr filesink = gr::blocks::wavfile_source::make(
-        "/home/jlruser/yocto/qcom-linux-guest/apps_proc/audio/mm-audio/audio-listen/sva/res/raw/succeed.wav"
-    );*/
-    std::cout << "WAV file sinks are not supported yet" << std::endl;
-}
-
-void rtl_add_udp_sink(rtl_ctx_t* this_tuner, const char* host, int port) {
-    std::cout << "Attempting to create udp sink to " << host << ":" << port << std::endl;
-
-    if (host == NULL) {
-        std::cout << "No host provided for UDP sink" << std::endl;
-        return;
-    }
-
-    std::string str_host(host);
-
-    gr::blocks::udp_sink::sptr udp =
-        gr::blocks::udp_sink::make(
-            sizeof(float),
-            str_host,
-            port);
+    gr::blocks::wavfile_sink::sptr filesink = gr::blocks::wavfile_sink::make(
+        file_name,
+        1,
+        44100
+    );
 
     this_tuner->top_block->connect(
         this_tuner->rresamp0, 0,
-        udp, 0);
+        filesink, 0);
 
-    this_tuner->sinks.push_back(udp);
+    this_tuner->sinks.push_back(filesink);
 }
 
 // Creates and allocates an instance of an rtl tuner context.
