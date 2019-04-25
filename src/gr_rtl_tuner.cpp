@@ -299,8 +299,8 @@ void create_fm_device(rtl_ctx &context)
     printf("gr_rtl: things are connected\n");
 }
 
-void rtl_add_audio_sink(rtl_ctx_t* this_tuner) {
-    gr::audio::sink::sptr audsink = gr::audio::sink::make(44100);
+void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device) {
+    gr::audio::sink::sptr audsink = gr::audio::sink::make(44100, device);
 
     this_tuner->top_block->connect(
         this_tuner->rresamp0, 0,
