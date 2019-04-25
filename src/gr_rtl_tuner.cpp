@@ -11,6 +11,7 @@
 #include <ctime>
 
 #include <thread>
+#include <mutex>
 #include <numeric>
 
 #include <iostream> // Debugging only
@@ -28,12 +29,19 @@
 #include "gnuradio/filter/iir_filter_ffd.h"
 #include "gnuradio/filter/fir_filter_fff.h"
 #include "gnuradio/blocks/wavfile_source.h"
+#include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
 #include "gr_wfmrcv.h"
+
+const unsigned int MAX_FM_STATIONS = 100;  // maximum number of poossible stations in FM band that we could find
 
 // Structure to hold smart pointers to flowgraph blocks for the rtl sdr tuner
 struct rtl_ctx {
     gr::top_block_sptr top_block;
     osmosdr::source::sptr rtl_source;
+    gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude;
+    double station_list[MAX_FM_STATIONS];
+    unsigned int station_list_len;
+    std::mutex station_list_mtx;
 };
 
 // Sets the FM center frequency for the given tuner
@@ -47,10 +55,63 @@ void rtl_set_fm(rtl_ctx_t* tuner, double freq)
 
 // Gets the current center FM frequency that the tuner is set to
 // Part of the external C API
-// @param tuner POinter to the tuner context
+// @param tuner Pointer to the tuner context
+// @returns currently tuned frequency in MHz
 double rtl_get_fm(rtl_ctx_t* tuner)
 {
-    return tuner->rtl_source->get_center_freq();
+    return tuner->rtl_source->get_center_freq() / 1e6;
+}
+
+// Iterates through the FM band, measures signal strength of each station, and populates station list
+// Note: this is a long-running function and should be run in the background
+// @param tuner Pointer to the tuner context
+void scan_fm_stations(rtl_ctx_t* tuner) {
+    // TODO: these constants will likely need adjustments depending on the setup, should be sampled/benchmarked somehow
+    const unsigned int SWITCH_DELAY_MS = 1000; // time to wait between switching stations and measuring the signal strength
+    const unsigned int MEASURE_MS = 200;       // time to sample the signal strength of each frequency (takes the highest sample)
+    const double POWER_THRESHOLD = 0.0002;     // minimum power a signal must have to be considered a valid channel
+    unsigned int found_stations = 0;
+    double stations_out[MAX_FM_STATIONS];
+    printf("Starting scan\n");
+    for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
+        rtl_set_fm(tuner, freq);
+        std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
+        double sample_sum = 0;
+        unsigned int num_samples = 0;
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < MEASURE_MS) {
+            sample_sum += tuner->avg_magnitude->level();
+            ++num_samples;
+        }
+        if (num_samples > 0) {
+            double sample_avg = sample_sum / num_samples;
+            if (sample_avg > POWER_THRESHOLD) {
+                printf("\tFound station: %f, strength: %f\n", freq, sample_avg);
+                stations_out[found_stations++] = freq;
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
+        memcpy(tuner->station_list, stations_out, sizeof(double) * found_stations);
+        tuner->station_list_len = found_stations;
+    }
+    printf("Finished scan\n");
+}
+
+// Gets the most recent station list measured by scan_fm_stations
+// Part of the external C API
+// @param tuner Pointer to the tuner context
+unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
+    // TODO: scan_fm_stations should happen in the background once the tuner supports two antennas
+    scan_fm_stations(tuner);
+    unsigned int stations_out_len = 0;
+    {
+        std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
+        memcpy(stations_out, tuner->station_list, sizeof(double) * tuner->station_list_len);
+        stations_out_len = tuner->station_list_len;
+    }
+    return stations_out_len;
 }
 
 // Does all of the heavy listing setting up a flowgraph for an rtl_sdr radio source
@@ -209,7 +270,8 @@ void create_fm_device(rtl_ctx &context)
     float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
     float audio_rate = quadrature / audio_dec;
 
-
+    gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
+    context.avg_magnitude = mag_probe;
 
     /*gr::blocks::wavfile_source::sptr filesink = gr::blocks::wavfile_source::make(
         "/home/jlruser/yocto/qcom-linux-guest/apps_proc/audio/mm-audio/audio-listen/sva/res/raw/succeed.wav"
@@ -226,6 +288,10 @@ void create_fm_device(rtl_ctx &context)
     tb->connect(
         lp0, 0,
         wfm, 0);
+
+    tb->connect(
+        lp0, 0,
+        mag_probe, 0);
 
     tb->connect(
         wfm, 0,
@@ -278,7 +344,6 @@ void rtl_start_fm(rtl_ctx_t* tuner)
         printf("Error: rtl_start_fm - no tuner specified\n");
         return;
     }
-
     tuner->top_block->start();
     tuner->top_block->wait();
 }
