@@ -9,13 +9,6 @@
 extern "C" {
 #endif
 
-// Types of audio sinks that the tuner will send samples to
-typedef enum {
-    SINK_ALSA,
-    SINK_WAV,
-    SINK_UDP
-} audio_sink_t;
-
 // Opaque context to pass to C
 typedef struct rtl_ctx rtl_ctx_t;
 

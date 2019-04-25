@@ -1,7 +1,6 @@
 .PHONY : clean all install
 
 TARGET = libgr_rtl_radio.so
-TARGET_RECEIVER = udp_receiver
 DESTDIR ?= /usr/local
 
 LIBS = -lgnuradio-runtime \
@@ -25,15 +24,13 @@ SOURCES = $(shell echo ./src/*.cpp)
 HEADERS = $(shell echo ./include*.h)
 OBJECTS = $(SOURCES:.cpp=.o)
 
-all: $(TARGET) $(TARGET_RECEIVER)
+all: $(TARGET)
 
 install: all
 	install -d ${DESTDIR}/lib; \
 	install -d ${DESTDIR}/include; \
 	install -m 0644 ${TARGET}  ${DESTDIR}/lib; \
 	install -m 0644 ${DEV_HDR}  ${DESTDIR}/include;
-
-$(TARGET_RECEIVER): 
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)

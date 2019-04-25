@@ -23,7 +23,6 @@
 #include "gnuradio/filter/fir_filter_ccf.h"
 #include "gnuradio/filter/firdes.h"
 #include "gnuradio/audio/sink.h"
-#include "gnuradio/block.h"
 #include "gnuradio/blocks/wavfile_sink.h"
 #include "gnuradio/hier_block2.h"
 #include "gnuradio/gr_complex.h"
@@ -122,15 +121,12 @@ unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
 // the rtl_ctx is typedefed to an opaque type in the header to allow compatibility with C
 void create_fm_device(rtl_ctx &context)
 {
-    // int mltpl = 1e6;
-    // int volume = 20;
     int transition = 1e6;
     int samp_rate = 2e6;
     int quadrature = 500e3;
     double freq = 101.9;
     int cutoff = 100e3;
     int audio_dec = 10;
-    // int max_dev = 75e3;
 
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
@@ -268,9 +264,6 @@ void create_fm_device(rtl_ctx &context)
         gr::io_signature::make(1, 1, sizeof(gr_complex)),
         gr::io_signature::make(1, 1, sizeof(float)));
 
-    // float fm_demod_gain = quadrature / (2 * M_PI * max_dev);
-    // float audio_rate = quadrature / audio_dec;
-
     gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
     context.avg_magnitude = mag_probe;
 
@@ -296,7 +289,7 @@ void create_fm_device(rtl_ctx &context)
         context.rresamp0, 0);
 
     // Sinks are defined in separate methods
-    printf("gr_rtl: things are connected\n");
+    printf("gr_rtl: flowgraph is connected\n");
 }
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device) {
