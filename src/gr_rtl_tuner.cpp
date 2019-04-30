@@ -292,8 +292,8 @@ void create_fm_device(rtl_ctx &context)
     printf("gr_rtl: flowgraph is connected\n");
 }
 
-void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device) {
-    gr::audio::sink::sptr audsink = gr::audio::sink::make(44100, device);
+void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate) {
+    gr::audio::sink::sptr audsink = gr::audio::sink::make(sampling_rate, device);
 
     this_tuner->top_block->connect(
         this_tuner->rresamp0, 0,
@@ -302,11 +302,11 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device) {
     this_tuner->sinks.push_back(audsink);
 }
 
-void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name) {
+void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate) {
     gr::blocks::wavfile_sink::sptr filesink = gr::blocks::wavfile_sink::make(
         file_name,
         1,
-        44100
+        sampling_rate
     );
 
     this_tuner->top_block->connect(
