@@ -259,10 +259,10 @@ void create_fm_device(rtl_ctx &context)
     );
 
 
-    gr::hier_block2_sptr wfmrcv = gr::make_hier_block2(
-        "wfm_rcv",
-        gr::io_signature::make(1, 1, sizeof(gr_complex)),
-        gr::io_signature::make(1, 1, sizeof(float)));
+    //gr::hier_block2_sptr wfmrcv = gr::make_hier_block2(
+    //    "wfm_rcv",
+    //    gr::io_signature::make(1, 1, sizeof(gr_complex)),
+    //    gr::io_signature::make(1, 1, sizeof(float)));
 
     gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
     context.avg_magnitude = mag_probe;
