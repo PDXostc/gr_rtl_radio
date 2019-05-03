@@ -9,12 +9,6 @@
 #define INCLUDED_GR_RUNTIME_RDSPARSER_H
 
 #include <gnuradio/analog/api.h>
-#include <gnuradio/filter/freq_xlating_fir_filter_fcc.h>
-#include <gnuradio/filter/pfb_arb_resampler_ccc.h>
-#include <gnuradio/filter/fir_filter_ccc.h>
-#include <gnuradio/filter/firdes.h>
-#include <gnuradio/blocks/keep_one_in_n.h>
-#include <gnuradio/digital/diff_decoder_bb.h>
 
 #include "gr_psk_demod.h"
 
@@ -34,16 +28,8 @@ public:
 
 private:
   rds_parser(void);
-  //rds_parser();
 
   void init_block();
-
-  gr::filter::freq_xlating_fir_filter_fcc::sptr filter;
-  gr::filter::pfb_arb_resampler_ccc::sptr resampler;
-  gr::filter::fir_filter_ccc::sptr rrc_filter;
-  //gr::filter::firdes::root_raised_cosine rrc_des;
-  //gr::blocks::keep_one_in_n koin;
-  //gr::digital::diff_decoder_bb diff_decoder;
 };
 
 } // namespace analog

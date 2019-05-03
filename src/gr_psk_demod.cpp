@@ -84,10 +84,10 @@ void psk_demod::init_block(psk_demod_params_t params)
     bool post_diff_code_none = true;
     if (params.mod_code == mod_code::GRAY_CODE) {
         if (params.differential) {
-            pre_diff_code = gcg.get_gray_code(params.constellation_points);
+            pre_diff_code = _gcg.get_gray_code(params.constellation_points);
         }
         else {
-            post_diff_code = gcg.get_gray_code(params.constellation_points);
+            post_diff_code = _gcg.get_gray_code(params.constellation_points);
             post_diff_code_none = false;
         }
     }

@@ -55,7 +55,7 @@ public:
   ~psk_demod();
 
 private:
-  gray_code_generator gcg;
+  gray_code_generator _gcg;
   psk_demod(void) {}
   psk_demod(psk_demod_params_t params);
 
