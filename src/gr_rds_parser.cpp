@@ -11,6 +11,8 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/blocks/keep_one_in_n.h>
 #include <gnuradio/digital/diff_decoder_bb.h>
+#include <rds/decoder.h>
+#include <rds/parser.h>
 
 #include "gr_rds_parser.h"
 
@@ -54,6 +56,25 @@ void rds_parser::init_block()
     params.phase_bw = 6.28/100.0;
     params.mod_code = gr::digital::mod_code::GRAY_CODE;
     auto psk_demod = gr::digital::psk_demod::make(params);
+
+    auto keep_one = gr::blocks::keep_one_in_n::make(sizeof(char), 2);
+
+    auto diff_decoder = gr::digital::diff_decoder_bb::make(2);
+
+    auto rds_decoder = gr::rds::decoder::make(false, false);
+
+    unsigned char pty_locale = 0; // 0 = Europe, 1 = North America
+    auto rds_parser = gr::rds::parser::make(false, false, pty_locale);
+
+    connect(self(), 0, filt, 0);
+    connect(filt, 0, resampler, 0);
+    connect(resampler, 0, fir_filt, 0);
+    connect(fir_filt, 0, psk_demod, 0);
+    connect(psk_demod, 0, keep_one, 0);
+    connect(keep_one, 0, diff_decoder, 0);
+    connect(diff_decoder, 0, rds_decoder, 0);
+    connect(rds_decoder, 0, rds_parser, 0);
+    connect(rds_parser, 0, self(), 0);
 }
 
 rds_parser::rds_parser()
