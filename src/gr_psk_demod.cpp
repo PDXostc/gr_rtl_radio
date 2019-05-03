@@ -7,6 +7,15 @@
 
 #include <cmath>
 #include <vector>
+#include <gnuradio/digital/constellation.h>
+#include <gnuradio/analog/agc2_cc.h>
+#include <gnuradio/digital/fll_band_edge_cc.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/digital/pfb_clock_sync_ccf.h>
+#include <gnuradio/digital/constellation_receiver_cb.h>
+#include <gnuradio/digital/map_bb.h>
+#include <gnuradio/digital/diff_decoder_bb.h>
+#include <gnuradio/blocks/unpack_k_bits_bb.h>
 
 #include "gr_psk_demod.h"
 
@@ -17,12 +26,12 @@ namespace digital
 
 std::vector<int> invert_code(std::vector<int> code) {
     std::vector<std::pair<int,int>> ic;
-    for (int i = 0; i < code.size(); ++i) {
+    for (unsigned int i = 0; i < code.size(); ++i) {
         ic.push_back(std::make_pair(code[i], i));
     }
     std::sort(ic.begin(), ic.end());
     std::vector<int> inverted;
-    for (int i = 0; i < code.size(); ++i) {
+    for (unsigned int i = 0; i < code.size(); ++i) {
         inverted.push_back(ic[i].first);
     }
     return inverted;
@@ -85,14 +94,44 @@ void psk_demod::init_block(psk_demod_params_t params)
     if (!post_diff_code_none) {
         std::vector<int> inverse_post_diff_code = invert_code(post_diff_code);
         std::vector<gr_complex> points_inv;
-        for (int i = 0; i < inverse_post_diff_code.size(); ++i) {
+        for (unsigned int i = 0; i < inverse_post_diff_code.size(); ++i) {
             points_inv.push_back(points[i]);
         }
         points = points_inv;
     }
-    auto psk = gr::digital::constellation_psk::make(points, pre_diff_code, params.constellation_points);
-
-    //super(psk_demod, self).__init__(constellation, differential, *args, **kwargs)
+    auto constellation = gr::digital::constellation_psk::make(points, pre_diff_code, params.constellation_points);
+    if (params.samples_per_symbol < 2) {
+        throw std::runtime_error("samples per symbol must be >= 2");
+    }
+    int arity = pow(2, constellation->bits_per_symbol());
+    int nfilts = 32;
+    int ntaps = 11 * int(params.samples_per_symbol * nfilts);
+    auto agc = gr::analog::agc2_cc::make(0.6e-1, 1e-3, 1, 1);
+    int fll_ntaps = 55;
+    auto freq_recov = gr::digital::fll_band_edge_cc::make(params.samples_per_symbol, params.excess_bw, fll_ntaps, params.freq_bw);
+    auto taps = gr::filter::firdes::root_raised_cosine(nfilts, nfilts * params.samples_per_symbol, 1.0, params.excess_bw, ntaps);
+    auto time_recov = gr::digital::pfb_clock_sync_ccf::make(params.samples_per_symbol, params.timing_bw, taps, nfilts, nfilts / 2, 1.5);
+    float fmin = -0.25;
+    float fmax = 0.25;
+    auto receiver = gr::digital::constellation_receiver_cb::make(constellation->base(), params.phase_bw, fmin, fmax);
+    auto unpack = gr::blocks::unpack_k_bits_bb::make(constellation->bits_per_symbol());
+    connect(self(), 0, agc, 0);
+    connect(agc, 0, freq_recov, 0);
+    connect(freq_recov, 0, time_recov, 0);
+    connect(time_recov, 0, receiver, 0);
+    gr::basic_block_sptr last_block = receiver;
+    if (params.differential) {
+        auto diffdec = gr::digital::diff_decoder_bb::make(arity);
+        connect(last_block, 0, diffdec, 0);
+        last_block = diffdec;
+    }
+    if (pre_diff_code.size() > 0) {
+        auto symbol_mapper = gr::digital::map_bb::make(invert_code(constellation->pre_diff_code()));
+        connect(last_block, 0, symbol_mapper, 0);
+        last_block = symbol_mapper;
+    }
+    connect(last_block, 0, unpack, 0);
+    connect(unpack, 0, self(), 0);
 }
 
 psk_demod::psk_demod(psk_demod_params_t params)

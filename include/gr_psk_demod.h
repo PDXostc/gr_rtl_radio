@@ -10,7 +10,6 @@
 
 #include <gnuradio/digital/api.h>
 #include <gnuradio/hier_block2.h>
-#include <gnuradio/digital/constellation.h>
 
 namespace gr
 {
