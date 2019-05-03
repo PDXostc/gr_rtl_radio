@@ -10,15 +10,33 @@
 
 #include <gnuradio/digital/api.h>
 #include <gnuradio/hier_block2.h>
+#include <gnuradio/digital/constellation.h>
 
 namespace gr
 {
 namespace digital
 {
 
+enum class mod_code {
+  GRAY_CODE,
+  SET_PARTITION_CODE,
+  NO_CODE
+};
+
+class gray_code_generator {
+public:
+  std::vector<int> get_gray_code(unsigned int length);
+  void generate_new_gray_code(unsigned int length);
+private:
+  std::vector<int> _gcs = {0,1};
+  int _lp2 = 2;
+  int _np2 = 4;
+  int _i = 2;
+};
+
 typedef struct psk_demod_params {
   int constellation_points;
-  int gray_code;
+  enum mod_code mod_code;
   int differential;
   float samples_per_symbol;
   int pre_diff_code;
@@ -38,6 +56,7 @@ public:
   ~psk_demod();
 
 private:
+  gray_code_generator gcg;
   psk_demod(void) {}
   psk_demod(psk_demod_params_t params);
 
