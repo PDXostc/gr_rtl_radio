@@ -14,18 +14,18 @@
 #include <rds/decoder.h>
 #include <rds/parser.h>
 
-#include "gr_rds_parser.h"
+#include "gr_rds_receiver.h"
 
 namespace gr
 {
 namespace analog
 {
 
-rds_parser::~rds_parser()
+rds_receiver::~rds_receiver()
 {
 }
 
-void rds_parser::init_block()
+void rds_receiver::init_block()
 {
     int decimation = 1;
     auto taps = filter::firdes::low_pass(2500.0, 250000, 2.6e3, 2e3, filter::firdes::WIN_HAMMING);
@@ -35,7 +35,13 @@ void rds_parser::init_block()
 
     float rate = 19000/250e3;
     unsigned int filter_size = 32;
-    auto resampler = gr::filter::pfb_arb_resampler_ccf::make(rate, {}, filter_size);
+    double atten = 100;
+    double percent = 0.80;
+    double halfband = 0.5 * rate;
+    double bw = percent * halfband;
+    double tb = (percent / 2.0) * halfband;
+    auto resamp_taps = filter::firdes::low_pass_2(filter_size, filter_size, bw, tb, atten, filter::firdes::WIN_HAMMING);
+    auto resampler = gr::filter::pfb_arb_resampler_ccf::make(rate, resamp_taps, filter_size);
 
     double gain = 1;
     double sampling_freq_rrc = 19000;
@@ -66,6 +72,8 @@ void rds_parser::init_block()
     unsigned char pty_locale = 0; // 0 = Europe, 1 = North America
     auto rds_parser = gr::rds::parser::make(false, false, pty_locale);
 
+    rds_sink = gr::rds::rds_sink::make();
+
     connect(self(), 0, filt, 0);
     connect(filt, 0, resampler, 0);
     connect(resampler, 0, fir_filt, 0);
@@ -73,22 +81,22 @@ void rds_parser::init_block()
     connect(psk_demod, 0, keep_one, 0);
     connect(keep_one, 0, diff_decoder, 0);
     connect(diff_decoder, 0, rds_decoder, 0);
-    connect(rds_decoder, 0, rds_parser, 0);
-    connect(rds_parser, 0, self(), 0);
+    msg_connect(rds_decoder, "out", rds_parser, "in");
+    msg_connect(rds_parser, "out", rds_sink, "in");
 }
 
-rds_parser::rds_parser()
+rds_receiver::rds_receiver()
     : hier_block2(
-          "rds_parser",
-          io_signature::make(1, 1, sizeof(gr_complex)),
+          "rds_receiver",
+          io_signature::make(1, 1, sizeof(float)),
           io_signature::make(0, 0, 0))
 {
     init_block();
 }
 
-rds_parser::sptr rds_parser::make()
+rds_receiver::sptr rds_receiver::make()
 {
-    return gnuradio::get_initial_sptr(new rds_parser());
+    return gnuradio::get_initial_sptr(new rds_receiver());
 }
 
 } // namespace analog

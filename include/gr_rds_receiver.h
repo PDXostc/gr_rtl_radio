@@ -5,29 +5,32 @@
 //
 // Author: Tim Rice (trice2@jaguarlandrover.com)
 
-#ifndef INCLUDED_GR_RUNTIME_RDSPARSER_H
-#define INCLUDED_GR_RUNTIME_RDSPARSER_H
+#ifndef INCLUDED_GR_RUNTIME_RDSRECEIVER_H
+#define INCLUDED_GR_RUNTIME_RDSRECEIVER_H
 
 #include <gnuradio/analog/api.h>
 
 #include "gr_psk_demod.h"
+#include "gr_rds_sink.h"
 
 namespace gr
 {
 namespace analog
 {
 
-class ANALOG_API rds_parser : public hier_block2
+class ANALOG_API rds_receiver : public hier_block2
 {
 public:
-  typedef boost::shared_ptr<rds_parser> sptr;
+  typedef boost::shared_ptr<rds_receiver> sptr;
 
   static sptr make();
 
-  ~rds_parser();
+  ~rds_receiver();
+
+  gr::rds::rds_sink::sptr rds_sink;
 
 private:
-  rds_parser(void);
+  rds_receiver(void);
 
   void init_block();
 };

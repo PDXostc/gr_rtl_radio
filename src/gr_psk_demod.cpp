@@ -71,7 +71,7 @@ psk_demod::~psk_demod()
 
 void psk_demod::init_block(psk_demod_params_t params)
 {
-    if (ceil(log2(params.constellation_points)) == floor(log2(params.constellation_points))) {
+    if (ceil(log2(params.constellation_points)) != floor(log2(params.constellation_points))) {
         throw std::runtime_error("Number of constellation points must be a power of two.");
     }
     std::vector<gr_complex> points;

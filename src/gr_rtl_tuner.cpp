@@ -31,6 +31,7 @@
 #include "gnuradio/filter/fir_filter_fff.h"
 #include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
 #include "gr_wfmrcv.h"
+#include "gr_rds_receiver.h"
 
 const unsigned int MAX_FM_STATIONS = 100;  // maximum number of poossible stations in FM band that we could find
 
@@ -40,6 +41,7 @@ struct rtl_ctx {
     osmosdr::source::sptr rtl_source;
     gr::filter::rational_resampler_base_fff::sptr rresamp0;
     gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude;
+    gr::analog::rds_receiver::sptr rds;
     double station_list[MAX_FM_STATIONS];
     unsigned int station_list_len;
     std::mutex station_list_mtx;
@@ -82,6 +84,7 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
         unsigned int num_samples = 0;
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
         while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < MEASURE_MS) {
+            std::cout << "packet: " << tuner->rds->rds_sink->get_latest_packet() << std::endl;
             sample_sum += tuner->avg_magnitude->level();
             ++num_samples;
         }
@@ -259,14 +262,15 @@ void create_fm_device(rtl_ctx &context)
     );
 
 
-    //gr::hier_block2_sptr wfmrcv = gr::make_hier_block2(
-    //    "wfm_rcv",
-    //    gr::io_signature::make(1, 1, sizeof(gr_complex)),
-    //    gr::io_signature::make(1, 1, sizeof(float)));
+    gr::hier_block2_sptr wfmrcv = gr::make_hier_block2(
+        "wfm_rcv",
+        gr::io_signature::make(1, 1, sizeof(gr_complex)),
+        gr::io_signature::make(1, 1, sizeof(float)));
 
     gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
     context.avg_magnitude = mag_probe;
 
+    context.rds = gr::analog::rds_receiver::make();
 
     tb->connect(
         rtlsrc, 0,
@@ -287,6 +291,11 @@ void create_fm_device(rtl_ctx &context)
     tb->connect(
         wfm, 0,
         context.rresamp0, 0);
+
+    tb->connect(
+        wfm, 0,
+        context.rds, 0);
+
 
     // Sinks are defined in separate methods
     printf("gr_rtl: flowgraph is connected\n");
