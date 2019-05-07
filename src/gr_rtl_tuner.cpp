@@ -54,6 +54,7 @@ struct rtl_ctx {
 // @param freq Frequency in megahertz e.g. 105.9
 void rtl_set_fm(rtl_ctx_t* tuner, double freq)
 {
+    tuner->rds->rds_sink->reset();
     tuner->rtl_source->set_center_freq(freq * 1e6);
 }
 
@@ -71,8 +72,8 @@ double rtl_get_fm(rtl_ctx_t* tuner)
 // @param tuner Pointer to the tuner context
 void scan_fm_stations(rtl_ctx_t* tuner) {
     // TODO: these constants will likely need adjustments depending on the setup, should be sampled/benchmarked somehow
-    const unsigned int SWITCH_DELAY_MS = 1000; // time to wait between switching stations and measuring the signal strength
-    const unsigned int MEASURE_MS = 1000;       // time to sample the signal strength of each frequency (takes the highest sample)
+    const unsigned int SWITCH_DELAY_MS = 1500; // time to wait between switching stations and measuring the signal strength
+    const unsigned int MEASURE_MS = 1500;       // time to sample the signal strength of each frequency (takes the highest sample)
     const double POWER_THRESHOLD = 0.0002;     // minimum power a signal must have to be considered a valid channel
     unsigned int found_stations = 0;
     double stations_out[MAX_FM_STATIONS];
@@ -86,6 +87,7 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
     for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
         rtl_set_fm(tuner, freq);
         std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
+        tuner->rds->rds_sink->reset();
         double sample_sum = 0;
         unsigned int num_samples = 0;
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -93,8 +95,9 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
             sample_sum += tuner->avg_magnitude->level();
             ++num_samples;
         }
-        std::cout << "packet: " << tuner->rds->rds_sink->get_latest_packet() << std::endl;
-        std::cout << "mag: " << tuner->rds->avg_magnitude_c->level() << std::endl;
+        std::cout << "curr_station: " << tuner->rds->rds_sink->get_curr_station() << std::endl;
+        std::cout << "curr_station_type: " << tuner->rds->rds_sink->get_curr_station_type() << std::endl;
+        //std::cout << "mag: " << tuner->rds->avg_magnitude_c->level() << std::endl;
         //std::cout << "psk_mag: " << tuner->rds->psk_demod->avg_magnitude_c->level() << std::endl;
         if (num_samples > 0) {
             double sample_avg = sample_sum / num_samples;

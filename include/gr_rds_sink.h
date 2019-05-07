@@ -25,7 +25,9 @@ public:
 
   void rds_rcv(pmt::pmt_t msg);
 
-  const std::string get_latest_packet();
+  const std::string get_curr_station();
+  const std::string get_curr_station_type();
+  void reset();
 
   ~rds_sink();
 
@@ -34,7 +36,8 @@ private:
 
   void init_block();
 
-  std::string _latest_packet;
+  std::string _curr_station;
+  std::string _curr_station_type;
 };
 
 } // namespace rds

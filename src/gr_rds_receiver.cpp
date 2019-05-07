@@ -71,10 +71,10 @@ void rds_receiver::init_block()
 
     auto diff_decoder = gr::digital::diff_decoder_bb::make(2);
 
-    auto rds_decoder = gr::rds::decoder::make(true, true);
+    auto rds_decoder = gr::rds::decoder::make(false, false);
 
-    unsigned char pty_locale = 0; // 0 = Europe, 1 = North America
-    auto rds_parser = gr::rds::parser::make(true, true, pty_locale);
+    unsigned char pty_locale = 1; // 0 = Europe, 1 = North America
+    auto rds_parser = gr::rds::parser::make(false, false, pty_locale);
 
     rds_sink = gr::rds::rds_sink::make();
 
