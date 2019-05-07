@@ -11,6 +11,9 @@
 #include <gnuradio/digital/api.h>
 #include <gnuradio/hier_block2.h>
 
+// FOR DEBUGGING
+#include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
+
 namespace gr
 {
 namespace digital
@@ -53,6 +56,9 @@ public:
   static sptr make(psk_demod_params_t params);
 
   ~psk_demod();
+
+  // FOR DEBUGGING
+  gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude_c;
 
 private:
   gray_code_generator _gcg;

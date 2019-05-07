@@ -10,6 +10,10 @@
 
 #include <gnuradio/analog/api.h>
 
+// FOR DEBUGGING
+#include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
+#include "gnuradio/blocks/message_debug.h"
+
 #include "gr_psk_demod.h"
 #include "gr_rds_sink.h"
 
@@ -28,6 +32,11 @@ public:
   ~rds_receiver();
 
   gr::rds::rds_sink::sptr rds_sink;
+
+  // FOR DEBUGGING
+  gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude_c;
+  gr::digital::psk_demod::sptr psk_demod;
+  gr::blocks::message_debug::sptr msg;
 
 private:
   rds_receiver(void);

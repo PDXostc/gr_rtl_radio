@@ -17,6 +17,10 @@
 #include <gnuradio/digital/diff_decoder_bb.h>
 #include <gnuradio/blocks/unpack_k_bits_bb.h>
 
+// FOR DEBUGGING
+#include <gnuradio/blocks/char_to_float.h>
+#include <gnuradio/blocks/float_to_complex.h>
+
 #include "gr_psk_demod.h"
 
 namespace gr
@@ -25,6 +29,10 @@ namespace digital
 {
 
 std::vector<int> invert_code(std::vector<int> code) {
+    std::cout << "code before" << std::endl;
+    for (int i = 0; i < code.size(); ++i) {
+        std::cout << code[i] << std::endl;
+    }
     std::vector<std::pair<int,int>> ic;
     for (unsigned int i = 0; i < code.size(); ++i) {
         ic.push_back(std::make_pair(code[i], i));
@@ -33,6 +41,10 @@ std::vector<int> invert_code(std::vector<int> code) {
     std::vector<int> inverted;
     for (unsigned int i = 0; i < code.size(); ++i) {
         inverted.push_back(ic[i].first);
+    }
+    std::cout << "code after" << std::endl;
+    for (int i = 0; i < inverted.size(); ++i) {
+        std::cout << inverted[i] << std::endl;
     }
     return inverted;
 }
@@ -75,10 +87,22 @@ void psk_demod::init_block(psk_demod_params_t params)
         throw std::runtime_error("Number of constellation points must be a power of two.");
     }
     std::vector<gr_complex> points;
-    for (int i = 0; i < params.constellation_points; ++i) {
-        gr_complex j(0, 1);
-        points.push_back(exp(2 * i * (float)M_PI * j) / (float)params.constellation_points);
-    }
+//    for (int i = 0; i < params.constellation_points; ++i) {
+//        gr_complex j(0, 1);
+//        points.push_back(exp(2 * i * (float)M_PI * j / (float)params.constellation_points));
+//        //std::cout << exp(2 * i * (float)M_PI * j) << std::endl;
+//        std::cout << "POINT:" << points[i] << std::endl;
+//    }
+
+
+    gr_complex pt1(1, 0);
+    gr_complex pt2(-1, 1.2246467991473532e-16);
+    points.push_back(pt1);
+    points.push_back(pt2);
+    std::cout << "POINT0:" << points[0] << std::endl;
+    std::cout << "POINT1:" << points[1] << std::endl;
+
+
     std::vector<int> pre_diff_code;
     std::vector<int> post_diff_code;
     bool post_diff_code_none = true;
@@ -99,6 +123,8 @@ void psk_demod::init_block(psk_demod_params_t params)
         }
         points = points_inv;
     }
+    std::cout << "POINT0:" << points[0] << std::endl;
+    std::cout << "POINT1:" << points[1] << std::endl;
     auto constellation = gr::digital::constellation_psk::make(points, pre_diff_code, params.constellation_points);
     if (params.samples_per_symbol < 2) {
         throw std::runtime_error("samples per symbol must be >= 2");
@@ -120,18 +146,30 @@ void psk_demod::init_block(psk_demod_params_t params)
     connect(freq_recov, 0, time_recov, 0);
     connect(time_recov, 0, receiver, 0);
     gr::basic_block_sptr last_block = receiver;
-    if (params.differential) {
-        auto diffdec = gr::digital::diff_decoder_bb::make(arity);
-        connect(last_block, 0, diffdec, 0);
-        last_block = diffdec;
-    }
-    if (pre_diff_code.size() > 0) {
-        auto symbol_mapper = gr::digital::map_bb::make(invert_code(constellation->pre_diff_code()));
-        connect(last_block, 0, symbol_mapper, 0);
-        last_block = symbol_mapper;
-    }
-    connect(last_block, 0, unpack, 0);
+    //std::cout << "checking params!" << std::endl;
+    //if (params.differential) {
+    //    //std::cout << "params.differential!" << std::endl;
+    //    auto diffdec = gr::digital::diff_decoder_bb::make(arity);
+    //    connect(last_block, 0, diffdec, 0);
+    //    last_block = diffdec;
+    //}
+    //if (pre_diff_code.size() > 0) {
+    //    //std::cout << "pre_diff_code!" << std::endl;
+    //    auto symbol_mapper = gr::digital::map_bb::make(invert_code(constellation->pre_diff_code()));
+    //    connect(last_block, 0, symbol_mapper, 0);
+    //    last_block = symbol_mapper;
+    //}
+    //connect(last_block, 0, unpack, 0);
+    connect(receiver, 0, unpack, 0);
     connect(unpack, 0, self(), 0);
+
+    // FOR DEBUGGING
+    avg_magnitude_c = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
+    auto chtf = gr::blocks::char_to_float::make();
+    auto ftc = gr::blocks::float_to_complex::make();
+    connect(receiver, 0, chtf, 0);
+    connect(chtf, 0, ftc, 0);
+    connect(ftc, 0, avg_magnitude_c, 0);
 }
 
 psk_demod::psk_demod(psk_demod_params_t params)
