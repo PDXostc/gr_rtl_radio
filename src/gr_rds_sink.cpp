@@ -63,9 +63,6 @@ std::string convert_to_callsign(const std::string& picode_str)
 // TODO: there are a lot more RDS fields that we could access here
 void rds_sink::rds_rcv(pmt::pmt_t msg)
 {
-    //printf("===RECEIVED RDS===\n");
-    //pmt::print(msg);
-    //printf("===END RECEIVED RDS===\n");
     if (pmt::is_tuple(msg)) {
         long msg_type = pmt::to_long(pmt::tuple_ref(msg, 0));
         std::string msg_val = pmt::symbol_to_string(pmt::tuple_ref(msg, 1));
@@ -84,8 +81,6 @@ void rds_sink::init_block()
 {
     message_port_register_in(pmt::mp("in"));
     set_msg_handler(pmt::mp("in"), boost::bind(&rds_sink::rds_rcv, this, _1));
-    printf ("RDS SINK INITIALIZED!\n");
-    //message_port_register_out(pmt::mp("out"));
 }
 
 rds_sink::rds_sink()

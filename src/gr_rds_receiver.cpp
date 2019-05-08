@@ -14,10 +14,6 @@
 #include <rds/decoder.h>
 #include <rds/parser.h>
 
-// FOR DEBUGGING
-#include <gnuradio/blocks/char_to_float.h>
-#include <gnuradio/blocks/float_to_complex.h>
-
 #include "gr_rds_receiver.h"
 
 namespace gr
@@ -65,7 +61,7 @@ void rds_receiver::init_block()
     params.timing_bw = 6.28/100.0;
     params.phase_bw = 6.28/100.0;
     params.mod_code = gr::digital::mod_code::GRAY_CODE;
-    psk_demod = gr::digital::psk_demod::make(params);
+    auto psk_demod = gr::digital::psk_demod::make(params);
 
     auto keep_one = gr::blocks::keep_one_in_n::make(sizeof(char), 2);
 
@@ -87,16 +83,6 @@ void rds_receiver::init_block()
     connect(diff_decoder, 0, rds_decoder, 0);
     msg_connect(rds_decoder, "out", rds_parser, "in");
     msg_connect(rds_parser, "out", rds_sink, "in");
-
-    // FOR DEBUGGING
-    avg_magnitude_c = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
-    auto chtf = gr::blocks::char_to_float::make();
-    auto ftc = gr::blocks::float_to_complex::make();
-    connect(diff_decoder, 0, chtf, 0);
-    connect(chtf, 0, ftc, 0);
-    connect(ftc, 0, avg_magnitude_c, 0);
-    //msg = gr::blocks::message_debug::make();
-    //msg_connect(rds_decoder, "out", msg, "print");
 }
 
 rds_receiver::rds_receiver()
