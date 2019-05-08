@@ -42,7 +42,7 @@ struct rtl_ctx {
     gr::filter::rational_resampler_base_fff::sptr rresamp0;
     gr::analog::probe_avg_mag_sqrd_f::sptr avg_magnitude;
     gr::analog::rds_receiver::sptr rds;
-    double station_list[MAX_FM_STATIONS];
+    station_info station_list[MAX_FM_STATIONS];
     unsigned int station_list_len;
     std::mutex station_list_mtx;
     gr::block_vector_t sinks;
@@ -75,12 +75,13 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
     const unsigned int MEASURE_MS = 1500;      // time to sample the signal strength of each frequency (takes the highest sample)
     const double POWER_THRESHOLD = 1.0;        // if the magnitude is above this threshold, it's not a valid staiton
     unsigned int found_stations = 0;
-    double stations_out[MAX_FM_STATIONS];
+    station_info stations_out[MAX_FM_STATIONS];
     printf("Starting scan\n");
 
-    for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
+    for (double freq = 87.9; freq <= 93.1/*107.9*/; freq += 0.2) {
         rtl_set_fm(tuner, freq);
         std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
+        tuner->rds->rds_sink->reset();
         double sample_sum = 0;
         unsigned int num_samples = 0;
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -91,14 +92,20 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
         if (num_samples > 0) {
             double sample_avg = sample_sum / num_samples;
             if (sample_avg < POWER_THRESHOLD) {
-                printf("\tFound station: %f, strength: %f\n", freq, sample_avg);
-                stations_out[found_stations++] = freq;
+                std::string name = tuner->rds->rds_sink->get_curr_station();
+                std::string genre = tuner->rds->rds_sink->get_curr_station_type();
+                printf("\tFound station: %f, %s, %s\n", freq, name.c_str(), genre.c_str());
+                station_info station;
+                station.frequency = freq;
+                strncpy(station.name, name.c_str(), STATION_NAME_MAX_LEN);
+                strncpy(station.genre, genre.c_str(), STATION_GENRE_MAX_LEN);
+                stations_out[found_stations++] = station;
             }
         }
     }
     {
         std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
-        memcpy(tuner->station_list, stations_out, sizeof(double) * found_stations);
+        memcpy(tuner->station_list, stations_out, sizeof(station_info) * found_stations);
         tuner->station_list_len = found_stations;
     }
     printf("Finished scan\n");
@@ -107,13 +114,13 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
 // Gets the most recent station list measured by scan_fm_stations
 // Part of the external C API
 // @param tuner Pointer to the tuner context
-unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
+unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, station_info* stations_out) {
     // TODO: scan_fm_stations should happen in the background once the tuner supports two antennas
     scan_fm_stations(tuner);
     unsigned int stations_out_len = 0;
     {
         std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
-        memcpy(stations_out, tuner->station_list, sizeof(double) * tuner->station_list_len);
+        memcpy(stations_out, tuner->station_list, sizeof(station_info) * tuner->station_list_len);
         stations_out_len = tuner->station_list_len;
     }
     return stations_out_len;
