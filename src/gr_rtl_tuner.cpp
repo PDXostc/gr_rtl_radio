@@ -78,7 +78,7 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
     station_info stations_out[MAX_FM_STATIONS];
     printf("Starting scan\n");
 
-    for (double freq = 87.9; freq <= 93.1/*107.9*/; freq += 0.2) {
+    for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
         rtl_set_fm(tuner, freq);
         std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
         tuner->rds->rds_sink->reset();
