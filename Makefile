@@ -3,7 +3,7 @@
 TARGET = libgr_rtl_radio.so
 DESTDIR ?= /usr/local
 
-LIBS = -lgnuradio-runtime \
+LIBSLIST = -lgnuradio-runtime \
        -lgnuradio-osmosdr \
        -lgnuradio-pmt \
        -lgnuradio-filter \
@@ -11,14 +11,19 @@ LIBS = -lgnuradio-runtime \
        -lgnuradio-analog \
        -lgnuradio-blocks \
        -pthread \
-       -lboost_system
+       -lboost_system \
+       $(LIBS)
 
 INC_PATHS = -I./include
 DEV_HDR = ./include/gr_rtl_tuner.h
-LDFLAGS = -shared -Wl,-rpath=/usr/lib/x86_64-linux-gnu
-CXXFLAGS = -fPIC -Wall -Wextra
+LDFLAGSLIST = -shared -Wl,-rpath=/usr/lib/x86_64-linux-gnu $(LDFLAGS)
+CXXFLAGSLIST = -fPIC -Wall -Wextra $(CXXFLAGS) $(CPPFLAGS)
 DEBUGFLAGS = -g
 RELEASEFLAGS = -O3
+
+export CXXFLAGSLIST
+export LIBSLIST
+export LDFLAGSLIST
 
 SOURCES = $(shell echo ./src/*.cpp)
 HEADERS = $(shell echo ./include*.h)
@@ -33,10 +38,10 @@ install: all
 	install -m 0644 ${DEV_HDR}  ${DESTDIR}/include;
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CXXFLAGSLIST) $(LDFLAGSLIST) -o $@ $^ $(LIBSLIST)
 
 $(OBJECTS): $(SOURCES)
-	$(CXX) $(CXXFLAGS) $(RELEASEFLAGS) $(INC_PATHS) -c $*.cpp -o $*.o
+	$(CXX) $(CXXFLAGSLIST) $(LDFLAGSLIST) $(RELEASEFLAGS) $(INC_PATHS) -c $*.cpp -o $*.o
 
 clean:
 	-rm -f ${TARGET} ${OBJECTS}
