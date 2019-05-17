@@ -293,13 +293,23 @@ void create_fm_device(rtl_ctx &context)
 }
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate) {
-    gr::audio::sink::sptr audsink = gr::audio::sink::make(sampling_rate, device);
+    gr::audio::sink::sptr audsink;
 
-    this_tuner->top_block->connect(
-        this_tuner->rresamp0, 0,
-        audsink, 0);
+    try {
+        audsink = gr::audio::sink::make(sampling_rate, device);
+        this_tuner->top_block->connect(
+            this_tuner->rresamp0, 0,
+            audsink, 0);
 
-    this_tuner->sinks.push_back(audsink);
+        this_tuner->sinks.push_back(audsink);
+    }
+    catch (const std::runtime_error& e) {
+        printf("Error: Unable to create audio sink, probably because the audio device specified is wrong.\n");
+        printf("An audio device can be set using the -d flag, e.g. -d [hw:0,0]\n");
+        printf("To see all of your audio devices execute 'aplay -l' without the quotes.\n");
+        exit(EXIT_FAILURE);
+    }
+
 }
 
 void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate) {
@@ -321,7 +331,6 @@ void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling
 // @return A pointer to a newly allocated tuner context
 rtl_ctx_t* rtl_create_tuner()
 {
-    printf("gr_rtl: create_tuner\n");
     rtl_ctx_t* tuner_ctx = new rtl_ctx_t;
     if (tuner_ctx == NULL)
     {
@@ -362,7 +371,7 @@ void rtl_start_fm(rtl_ctx_t* tuner)
 
     if (tuner->sinks.size() == 0)
     {
-        printf("Error: rtl_start_fm - no audio sinks specified for tuner\n");
+        printf("Error: rtl_start_fm - no audio sinks specified for tuner.  Use the -w or -a flags to add an audio sink.\n");
         return;
     }
 
