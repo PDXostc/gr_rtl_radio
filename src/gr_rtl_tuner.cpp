@@ -29,8 +29,9 @@
 #include "gnuradio/analog/quadrature_demod_cf.h"
 #include "gnuradio/filter/iir_filter_ffd.h"
 #include "gnuradio/filter/fir_filter_fff.h"
-#include "gnuradio/analog/probe_avg_mag_sqrd_c.h"
+#include "gnuradio/analog/probe_avg_mag_sqrd_f.h"
 #include "gr_wfmrcv.h"
+#include "gr_rds_receiver.h"
 
 const unsigned int MAX_FM_STATIONS = 100;  // maximum number of poossible stations in FM band that we could find
 
@@ -39,8 +40,9 @@ struct rtl_ctx {
     gr::top_block_sptr top_block;
     osmosdr::source::sptr rtl_source;
     gr::filter::rational_resampler_base_fff::sptr rresamp0;
-    gr::analog::probe_avg_mag_sqrd_c::sptr avg_magnitude;
-    double station_list[MAX_FM_STATIONS];
+    gr::analog::probe_avg_mag_sqrd_f::sptr avg_magnitude;
+    gr::analog::rds_receiver::sptr rds;
+    station_info station_list[MAX_FM_STATIONS];
     unsigned int station_list_len;
     std::mutex station_list_mtx;
     gr::block_vector_t sinks;
@@ -69,15 +71,17 @@ double rtl_get_fm(rtl_ctx_t* tuner)
 // @param tuner Pointer to the tuner context
 void scan_fm_stations(rtl_ctx_t* tuner) {
     // TODO: these constants will likely need adjustments depending on the setup, should be sampled/benchmarked somehow
-    const unsigned int SWITCH_DELAY_MS = 1000; // time to wait between switching stations and measuring the signal strength
-    const unsigned int MEASURE_MS = 200;       // time to sample the signal strength of each frequency (takes the highest sample)
-    const double POWER_THRESHOLD = 0.0002;     // minimum power a signal must have to be considered a valid channel
+    const unsigned int SWITCH_DELAY_MS = 1500; // time to wait between switching stations and measuring the signal strength
+    const unsigned int MEASURE_MS = 1500;      // time to sample the signal strength of each frequency (takes the highest sample)
+    const double POWER_THRESHOLD = 3.0;        // if the magnitude is above this threshold, it's not a valid staiton
     unsigned int found_stations = 0;
-    double stations_out[MAX_FM_STATIONS];
+    station_info stations_out[MAX_FM_STATIONS];
     printf("Starting scan\n");
+
     for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
         rtl_set_fm(tuner, freq);
         std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
+        tuner->rds->rds_sink->reset();
         double sample_sum = 0;
         unsigned int num_samples = 0;
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -87,15 +91,21 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
         }
         if (num_samples > 0) {
             double sample_avg = sample_sum / num_samples;
-            if (sample_avg > POWER_THRESHOLD) {
-                printf("\tFound station: %f, strength: %f\n", freq, sample_avg);
-                stations_out[found_stations++] = freq;
+            if (sample_avg < POWER_THRESHOLD) {
+                std::string name = tuner->rds->rds_sink->get_curr_station();
+                std::string genre = tuner->rds->rds_sink->get_curr_station_type();
+                printf("\tFound station: %f, %s, %s\n", freq, name.c_str(), genre.c_str());
+                station_info station;
+                station.frequency = freq;
+                strncpy(station.name, name.c_str(), STATION_NAME_MAX_LEN);
+                strncpy(station.genre, genre.c_str(), STATION_GENRE_MAX_LEN);
+                stations_out[found_stations++] = station;
             }
         }
     }
     {
         std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
-        memcpy(tuner->station_list, stations_out, sizeof(double) * found_stations);
+        memcpy(tuner->station_list, stations_out, sizeof(station_info) * found_stations);
         tuner->station_list_len = found_stations;
     }
     printf("Finished scan\n");
@@ -104,13 +114,13 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
 // Gets the most recent station list measured by scan_fm_stations
 // Part of the external C API
 // @param tuner Pointer to the tuner context
-unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
+unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, station_info* stations_out) {
     // TODO: scan_fm_stations should happen in the background once the tuner supports two antennas
     scan_fm_stations(tuner);
     unsigned int stations_out_len = 0;
     {
         std::lock_guard<std::mutex> lock(tuner->station_list_mtx);
-        memcpy(stations_out, tuner->station_list, sizeof(double) * tuner->station_list_len);
+        memcpy(stations_out, tuner->station_list, sizeof(station_info) * tuner->station_list_len);
         stations_out_len = tuner->station_list_len;
     }
     return stations_out_len;
@@ -122,11 +132,11 @@ unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, double* stations_out) {
 void create_fm_device(rtl_ctx &context)
 {
     int transition = 1e6;
-    int samp_rate = 2e6;
-    int quadrature = 500e3;
+    int samp_rate = 1e6;
+    int quadrature = 1e6;
     double freq = 101.9;
     int cutoff = 100e3;
-    int audio_dec = 10;
+    int audio_dec = 4;
 
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
@@ -139,10 +149,10 @@ void create_fm_device(rtl_ctx &context)
     rtlsrc->set_center_freq(freq * 1e6);
     rtlsrc->set_freq_corr(0, 0);
     rtlsrc->set_dc_offset_mode(2, 0);
-    rtlsrc->set_iq_balance_mode(1, 0);
+    rtlsrc->set_iq_balance_mode(2, 0);
     rtlsrc->set_gain_mode(false, 0);
-    rtlsrc->set_gain(20, 0);
-    rtlsrc->set_if_gain(20, 0);
+    rtlsrc->set_gain(14, 0);
+    rtlsrc->set_if_gain(24, 0);
     rtlsrc->set_bb_gain(20, 0);
     rtlsrc->set_antenna("", 0);
     rtlsrc->set_bandwidth(0, 0);
@@ -264,9 +274,10 @@ void create_fm_device(rtl_ctx &context)
         gr::io_signature::make(1, 1, sizeof(gr_complex)),
         gr::io_signature::make(1, 1, sizeof(float)));
 
-    gr::analog::probe_avg_mag_sqrd_c::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_c::make(0.0);
+    gr::analog::probe_avg_mag_sqrd_f::sptr mag_probe = gr::analog::probe_avg_mag_sqrd_f::make(0.0);
     context.avg_magnitude = mag_probe;
 
+    context.rds = gr::analog::rds_receiver::make();
 
     tb->connect(
         rtlsrc, 0,
@@ -281,12 +292,17 @@ void create_fm_device(rtl_ctx &context)
         wfm, 0);
 
     tb->connect(
-        lp0, 0,
+        wfm, 0,
         mag_probe, 0);
 
     tb->connect(
         wfm, 0,
         context.rresamp0, 0);
+
+    tb->connect(
+        wfm, 0,
+        context.rds, 0);
+
 
     // Sinks are defined in separate methods
     printf("gr_rtl: flowgraph is connected\n");

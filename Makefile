@@ -10,14 +10,16 @@ LIBSLIST = -lgnuradio-runtime \
        -lgnuradio-audio \
        -lgnuradio-analog \
        -lgnuradio-blocks \
+       -lgnuradio-digital \
+       -lgnuradio-rds \
        -pthread \
        -lboost_system \
        $(LIBS)
 
-INC_PATHS = -I./include
+INC_PATHS = -I./include -I/usr/local/include/rds/gnuradio
 DEV_HDR = ./include/gr_rtl_tuner.h
 LDFLAGSLIST = -shared -Wl,-rpath=/usr/lib/x86_64-linux-gnu $(LDFLAGS)
-CXXFLAGSLIST = -fPIC -Wall -Wextra $(CXXFLAGS) $(CPPFLAGS)
+CXXFLAGSLIST = -fPIC -Wall -Wextra -std=c++11 $(CXXFLAGS) $(CPPFLAGS)
 DEBUGFLAGS = -g
 RELEASEFLAGS = -O3
 
