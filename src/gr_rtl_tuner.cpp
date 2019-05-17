@@ -73,14 +73,13 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
     // TODO: these constants will likely need adjustments depending on the setup, should be sampled/benchmarked somehow
     const unsigned int SWITCH_DELAY_MS = 1500; // time to wait between switching stations and measuring the signal strength
     const unsigned int MEASURE_MS = 1500;      // time to sample the signal strength of each frequency (takes the highest sample)
-    const double POWER_THRESHOLD = 10000000.0;        // if the magnitude is above this threshold, it's not a valid staiton
+    const double POWER_THRESHOLD = 3.0;        // if the magnitude is above this threshold, it's not a valid staiton
     unsigned int found_stations = 0;
     station_info stations_out[MAX_FM_STATIONS];
     printf("Starting scan\n");
 
     for (double freq = 87.9; freq <= 107.9; freq += 0.2) {
         rtl_set_fm(tuner, freq);
-        printf("after set_fm\n");
         std::this_thread::sleep_for(std::chrono::milliseconds(SWITCH_DELAY_MS));
         tuner->rds->rds_sink->reset();
         double sample_sum = 0;
@@ -90,14 +89,12 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
             sample_sum += tuner->avg_magnitude->level();
             ++num_samples;
         }
-        printf("num_samples: %u", num_samples);
         if (num_samples > 0) {
             double sample_avg = sample_sum / num_samples;
-            printf("sample_avg: %f", sample_avg);
             if (sample_avg < POWER_THRESHOLD) {
                 std::string name = tuner->rds->rds_sink->get_curr_station();
                 std::string genre = tuner->rds->rds_sink->get_curr_station_type();
-                printf("\tFound station: %f, %s, %s, %f\n", freq, name.c_str(), genre.c_str(), sample_avg);
+                printf("\tFound station: %f, %s, %s\n", freq, name.c_str(), genre.c_str());
                 station_info station;
                 station.frequency = freq;
                 strncpy(station.name, name.c_str(), STATION_NAME_MAX_LEN);
