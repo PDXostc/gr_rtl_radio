@@ -85,9 +85,9 @@ void rds_sink::init_block()
 
 rds_sink::rds_sink()
     : gr::block(
-          "rds_receiver",
-          io_signature::make(0, 0, 0),
-          io_signature::make(0, 0, 0))
+        "rds_receiver",
+        io_signature::make(0, 0, 0),
+        io_signature::make(0, 0, 0))
 {
     init_block();
 }

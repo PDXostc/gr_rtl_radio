@@ -35,8 +35,8 @@ void wfmrcv::init_block(float quad_rate, float audio_decimation)
         filter::firdes::WIN_HAMMING);
 
     audio_filter = filter::fir_filter_fff::make(
-      audio_decimation,
-      audio_coeffs
+        audio_decimation,
+        audio_coeffs
     );
 
     connect(self(), 0, fm_demod, 0);
@@ -47,9 +47,9 @@ void wfmrcv::init_block(float quad_rate, float audio_decimation)
 
 wfmrcv::wfmrcv(float quad_rate, float audio_decimation)
     : hier_block2(
-          "wfmrcv",
-          io_signature::make(1, 1, sizeof(gr_complex)),
-          io_signature::make(1, 1, sizeof(float)))
+        "wfmrcv",
+        io_signature::make(1, 1, sizeof(gr_complex)),
+        io_signature::make(1, 1, sizeof(float)))
 {
     init_block(quad_rate, audio_decimation);
 }

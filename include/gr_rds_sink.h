@@ -19,25 +19,25 @@ namespace rds
 class RDS_API rds_sink : public gr::block
 {
 public:
-  typedef boost::shared_ptr<rds_sink> sptr;
+    typedef boost::shared_ptr<rds_sink> sptr;
 
-  static sptr make();
+    static sptr make();
 
-  void rds_rcv(pmt::pmt_t msg);
+    void rds_rcv(pmt::pmt_t msg);
 
-  const std::string get_curr_station();
-  const std::string get_curr_station_type();
-  void reset();
+    const std::string get_curr_station();
+    const std::string get_curr_station_type();
+    void reset();
 
-  ~rds_sink();
+    ~rds_sink();
 
 private:
-  rds_sink(void);
+    rds_sink(void);
 
-  void init_block();
+    void init_block();
 
-  std::string _curr_station;
-  std::string _curr_station_type;
+    std::string _curr_station;
+    std::string _curr_station_type;
 };
 
 } // namespace rds

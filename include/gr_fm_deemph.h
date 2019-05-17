@@ -19,19 +19,15 @@ namespace analog
 
 class ANALOG_API fm_deemph : public hier_block2
 {
-  public:
-    typedef boost::shared_ptr<fm_deemph> sptr;
+    public:
+        typedef boost::shared_ptr<fm_deemph> sptr;
+        static sptr make(float audio_rate);
+        ~fm_deemph();
 
-    static sptr make(float audio_rate);
-
-    ~fm_deemph();
-
-  private:
-    fm_deemph(void) {}
-    fm_deemph(float audio_rate);
-
-    gr::filter::iir_filter_ffd::sptr iirfilt;
-
+    private:
+        fm_deemph(void) {}
+        fm_deemph(float audio_rate);
+        gr::filter::iir_filter_ffd::sptr iirfilt;
 };
 
 } // namespace analog

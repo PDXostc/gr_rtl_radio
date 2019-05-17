@@ -21,18 +21,18 @@ namespace analog
 class ANALOG_API rds_receiver : public hier_block2
 {
 public:
-  typedef boost::shared_ptr<rds_receiver> sptr;
+    typedef boost::shared_ptr<rds_receiver> sptr;
 
-  static sptr make();
+    static sptr make();
 
-  ~rds_receiver();
+    ~rds_receiver();
 
-  gr::rds::rds_sink::sptr rds_sink;
+    gr::rds::rds_sink::sptr rds_sink;
 
 private:
-  rds_receiver(void);
+    rds_receiver(void);
 
-  void init_block();
+    void init_block();
 };
 
 } // namespace analog

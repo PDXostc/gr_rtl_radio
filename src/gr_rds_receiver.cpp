@@ -87,9 +87,9 @@ void rds_receiver::init_block()
 
 rds_receiver::rds_receiver()
     : hier_block2(
-          "rds_receiver",
-          io_signature::make(1, 1, sizeof(float)),
-          io_signature::make(0, 0, 0))
+        "rds_receiver",
+        io_signature::make(1, 1, sizeof(float)),
+        io_signature::make(0, 0, 0))
 {
     init_block();
 }

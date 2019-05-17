@@ -23,9 +23,9 @@ fm_deemph::sptr fm_deemph::make(float audio_rate)
 
 fm_deemph::fm_deemph(float audio_rate)
     : hier_block2(
-          "fm_deemph",
-          io_signature::make(1, 1, sizeof(float)),
-          io_signature::make(1, 1, sizeof(float)))
+        "fm_deemph",
+        io_signature::make(1, 1, sizeof(float)),
+        io_signature::make(1, 1, sizeof(float)))
 {
     double tau = 75.0e-6;
     double w_c = 1.0 / tau;
