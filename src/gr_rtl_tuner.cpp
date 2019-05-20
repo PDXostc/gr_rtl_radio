@@ -141,6 +141,11 @@ void create_fm_device(rtl_ctx &context)
     gr::top_block_sptr tb = gr::make_top_block("top");
     osmosdr::source::sptr rtlsrc = osmosdr::source::make("numchan=1 rtl=0");
 
+    if (rtlsrc->get_num_channels() < 1) {
+        printf("Error: No rtl sources.  This probably means you don't have an antenna plugged in.\n");
+        exit(EXIT_FAILURE);
+    }
+
     context.top_block = tb;
     context.rtl_source = rtlsrc;
 
