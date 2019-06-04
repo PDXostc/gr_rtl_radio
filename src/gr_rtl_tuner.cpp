@@ -388,7 +388,6 @@ void rtl_start_fm(rtl_ctx_t* tuner)
     }
 
     tuner->top_block->start();
-    tuner->top_block->wait();
 }
 
 // Stops a running flowgraph
