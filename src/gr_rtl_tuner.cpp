@@ -36,7 +36,8 @@
 const unsigned int MAX_FM_STATIONS = 100;  // maximum number of poossible stations in FM band that we could find
 
 // Structure to hold smart pointers to flowgraph blocks for the rtl sdr tuner
-struct rtl_ctx {
+struct rtl_ctx
+{
     gr::top_block_sptr top_block;
     osmosdr::source::sptr rtl_source;
     gr::filter::rational_resampler_base_fff::sptr rresamp0;
@@ -69,7 +70,8 @@ double rtl_get_fm(rtl_ctx_t* tuner)
 // Iterates through the FM band, measures signal strength of each station, and populates station list
 // Note: this is a long-running function and should be run in the background
 // @param tuner Pointer to the tuner context
-void scan_fm_stations(rtl_ctx_t* tuner) {
+void scan_fm_stations(rtl_ctx_t* tuner)
+{
     // TODO: these constants will likely need adjustments depending on the setup, should be sampled/benchmarked somehow
     const unsigned int SWITCH_DELAY_MS = 1500; // time to wait between switching stations and measuring the signal strength
     const unsigned int MEASURE_MS = 1500;      // time to sample the signal strength of each frequency (takes the highest sample)
@@ -114,7 +116,8 @@ void scan_fm_stations(rtl_ctx_t* tuner) {
 // Gets the most recent station list measured by scan_fm_stations
 // Part of the external C API
 // @param tuner Pointer to the tuner context
-unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, station_info* stations_out) {
+unsigned int rtl_get_fm_stations(rtl_ctx_t* tuner, station_info* stations_out)
+{
     // TODO: scan_fm_stations should happen in the background once the tuner supports two antennas
     scan_fm_stations(tuner);
     unsigned int stations_out_len = 0;
@@ -313,7 +316,8 @@ void create_fm_device(rtl_ctx &context)
     printf("gr_rtl: flowgraph is connected\n");
 }
 
-void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate) {
+void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate)
+{
     gr::audio::sink::sptr audsink = gr::audio::sink::make(sampling_rate, device);
 
     this_tuner->top_block->connect(
@@ -323,7 +327,8 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_
     this_tuner->sinks.push_back(audsink);
 }
 
-void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate) {
+void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate)
+{
     gr::blocks::wavfile_sink::sptr filesink = gr::blocks::wavfile_sink::make(
         file_name,
         1,
@@ -365,6 +370,7 @@ void rtl_destroy_tuner(rtl_ctx_t* tuner)
         return;
     }
     tuner->top_block->stop();
+    tuner->top_block->wait(); // Synchronize threads
     tuner->top_block.reset();
     delete tuner;
 }
@@ -402,4 +408,5 @@ void rtl_stop_fm(rtl_ctx_t* tuner)
     }
 
     tuner->top_block->stop();
+    tuner->top_block->wait(); // Synchronize threads
 }
