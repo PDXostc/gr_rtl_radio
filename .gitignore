@@ -33,3 +33,6 @@
 
 # Doxygen
 *.in
+
+# Tags
+*tags

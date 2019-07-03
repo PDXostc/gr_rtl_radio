@@ -36,6 +36,8 @@ unsigned int rtl_get_fm_stations(rtl_ctx_t* this_tuner, station_info_t* stations
 void rtl_set_fm(rtl_ctx_t* this_tuner, double freq);
 double rtl_get_fm(rtl_ctx_t* this_tuner);
 
+float rtl_get_signal_str(rtl_ctx_t* tuner);
+
 #ifdef __cplusplus
 }
 #endif
