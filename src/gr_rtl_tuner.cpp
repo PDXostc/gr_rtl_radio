@@ -404,3 +404,12 @@ void rtl_stop_fm(rtl_ctx_t* tuner)
 
     tuner->top_block->stop();
 }
+
+// Returns the signal strength of the current fm station
+// Part of the external API
+// @param tuner The tuner context
+// @return A float for the FM signal strength
+float rtl_get_signal_str(rtl_ctx_t* tuner)
+{
+    return tuner->avg_magnitude->level();
+}
