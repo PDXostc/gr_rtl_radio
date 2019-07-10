@@ -30,6 +30,7 @@ void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling
 
 void rtl_start_fm(rtl_ctx_t* this_tuner);
 void rtl_stop_fm(rtl_ctx_t* this_tuner);
+void rtl_wait(rtl_ctx_t* tuner);
 
 unsigned int rtl_get_fm_stations(rtl_ctx_t* this_tuner, station_info_t* stations_out);
 

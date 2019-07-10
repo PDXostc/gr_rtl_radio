@@ -387,6 +387,18 @@ void rtl_start_fm(rtl_ctx_t* tuner)
         return;
     }
 
+}
+
+// Wait for the gnuradio threads to terminate
+// Part of the external API
+// @param tuner The tuner context
+void rtl_wait(rtl_ctx_t* tuner)
+{
+    if (tuner == NULL)
+    {
+        return;
+    }
+
     tuner->top_block->start();
     tuner->top_block->wait();
 }
