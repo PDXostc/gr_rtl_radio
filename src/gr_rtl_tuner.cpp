@@ -387,6 +387,7 @@ void rtl_start_fm(rtl_ctx_t* tuner)
         return;
     }
 
+    tuner->top_block->start();
 }
 
 // Wait for the gnuradio threads to terminate
@@ -399,7 +400,6 @@ void rtl_wait(rtl_ctx_t* tuner)
         return;
     }
 
-    tuner->top_block->start();
     tuner->top_block->wait();
 }
 
