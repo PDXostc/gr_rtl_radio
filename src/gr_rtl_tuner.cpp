@@ -369,8 +369,9 @@ void rtl_destroy_tuner(rtl_ctx_t* tuner)
     delete tuner;
 }
 
-// Starts up a tuner context running.  Blocks forever since the flowgraph never terminates.
-// The assumption is that the caller will start this function on a dedicated thread because it blocks
+// Starts up a tuner context running.  Intended to be used with rtl_wait() since rtl_start_fm is nonblocking.
+// The assumption is that the caller will start this function on a dedicated thread and
+// then that thread will call rtl_wait to block until terminated by a different thread.
 // Part of the external API
 // @param tuner The tuner context
 void rtl_start_fm(rtl_ctx_t* tuner)
@@ -388,6 +389,19 @@ void rtl_start_fm(rtl_ctx_t* tuner)
     }
 
     tuner->top_block->start();
+}
+
+// Blocks until the tuner is stopped from a different thread.  The flowgraph this was
+// designed for generally run forever and need to be stopped asynchronously.
+// Part of the external API
+// @param tuner The tuner context
+void rtl_wait(rtl_ctx_t* tuner)
+{
+    if (tuner == NULL)
+    {
+        return;
+    }
+
     tuner->top_block->wait();
 }
 
