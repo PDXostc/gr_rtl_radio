@@ -156,7 +156,7 @@ void create_fm_device(rtl_ctx &context)
     rtlsrc->set_dc_offset_mode(2, 0);
     rtlsrc->set_iq_balance_mode(2, 0);
     rtlsrc->set_gain_mode(false, 0);
-    rtlsrc->set_gain(14, 0);
+    rtlsrc->set_gain(20, 0);
     rtlsrc->set_if_gain(24, 0);
     rtlsrc->set_bb_gain(20, 0);
     rtlsrc->set_antenna("", 0);
