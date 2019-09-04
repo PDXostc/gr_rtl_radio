@@ -314,7 +314,14 @@ void create_fm_device(rtl_ctx &context)
 }
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate) {
-    gr::audio::sink::sptr audsink = gr::audio::sink::make(sampling_rate, device);
+    gr::audio::sink::sptr audsink = NULL;
+    try {
+        audsink = gr::audio::sink::make(sampling_rate, device);
+    } catch(...) {
+        // code to handle any exception
+        printf("Exception Caught: rtl_add_audio_sink - invalid audio sinks device\n");
+        return;
+    }
 
     this_tuner->top_block->connect(
         this_tuner->rresamp0, 0,
