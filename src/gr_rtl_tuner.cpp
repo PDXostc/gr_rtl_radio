@@ -330,6 +330,12 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_
     this_tuner->sinks.push_back(audsink);
 }
 
+
+void rtl_remove_audio_sink(rtl_ctx_t* this_tuner) {
+
+    this_tuner->sinks.pop_back();
+}
+
 void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate) {
     gr::blocks::wavfile_sink::sptr filesink = gr::blocks::wavfile_sink::make(
         file_name,
