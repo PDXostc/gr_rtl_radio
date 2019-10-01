@@ -330,9 +330,23 @@ void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_
     this_tuner->sinks.push_back(audsink);
 }
 
-
+// remove the last audio sink device
+// Part of the external API
+// @param The tuner context
 void rtl_remove_audio_sink(rtl_ctx_t* this_tuner) {
+    if (this_tuner == NULL)
+    {
+        printf("Error: rtl_start_fm - no tuner specified\n");
+        return;
+    }
 
+    if (this_tuner->sinks.size() == 0)
+    {
+        printf("Error: rtl_start_fm - no audio sinks specified for tuner\n");
+        return;
+    }
+
+    this_tuner->top_block->disconnect(this_tuner->sinks.back());
     this_tuner->sinks.pop_back();
 }
 
