@@ -26,6 +26,7 @@ rtl_ctx_t* rtl_create_tuner();
 void rtl_destroy_tuner(rtl_ctx_t* this_tuner);
 
 void rtl_add_audio_sink(rtl_ctx_t* this_tuner, const char* device, int sampling_rate);
+void rtl_remove_audio_sink(rtl_ctx_t* this_tuner);
 void rtl_add_wav_sink(rtl_ctx_t* this_tuner, const char* file_name, int sampling_rate);
 
 void rtl_start_fm(rtl_ctx_t* this_tuner);
